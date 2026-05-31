@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🗺️ Birthday Treasure Hunt!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Nunito:wght@400;600;700;800&family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --parchment: #F5E6C8;
+  --parchment-dark: #E8D5A3;
+  --parchment-deeper: #D4B87A;
+  --ink: #2C1810;
+  --ink-light: #5C3A1E;
+  --gold: #C8960C;
+  --gold-light: #F0C040;
+  --red-seal: #8B1A1A;
+  --rope: #8B6914;
+  --map-green: #4A6741;
+  --map-blue: #2A4A6B;
+  --shadow: rgba(44,24,16,0.25);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Nunito',sans-serif; background:#1A0E05; min-height:100vh; overflow-x:hidden; position:relative; }
+.map-bg { position:fixed;inset:0;z-index:0; background: radial-gradient(ellipse at 20% 30%,rgba(100,60,10,0.4) 0%,transparent 50%), radial-gradient(ellipse at 80% 70%,rgba(60,30,5,0.5) 0%,transparent 50%), radial-gradient(ellipse at 50% 50%,rgba(80,45,8,0.3) 0%,transparent 70%), #1A0E05; overflow:hidden; }
+.map-bg::before { content:'';position:absolute;inset:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(180,130,50,0.06) 39px,rgba(180,130,50,0.06) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(180,130,50,0.06) 39px,rgba(180,130,50,0.06) 40px); }
+.dust { position:fixed;inset:0;z-index:1;pointer-events:none; }
+.mote { position:absolute;border-radius:50%;background:rgba(220,180,80,0.4);animation:floatMote linear infinite; }
+.compass { position:fixed;bottom:20px;right:20px;z-index:2;width:80px;height:80px;opacity:0.18;animation:compassSpin 40s linear infinite; }
+@keyframes compassSpin{to{transform:rotate(360deg);}}
+.rope-top,.rope-bottom { position:fixed;left:0;right:0;z-index:3;pointer-events:none;height:12px;background:repeating-linear-gradient(90deg,#8B6914 0px,#C8960C 4px,#8B6914 8px,#6B4E10 12px,#8B6914 16px);opacity:0.7; }
+.rope-top{top:0;} .rope-bottom{bottom:0;}
+.page { position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px; }
+.screen { display:none;width:100%;max-width:580px; }
+.screen.active { display:block;animation:unfurl 0.6s cubic-bezier(0.34,1.4,0.64,1) both; }
+@keyframes unfurl { from{opacity:0;transform:scale(0.88) rotateX(8deg) translateY(30px);}to{opacity:1;transform:none;} }
+.scroll { background:var(--parchment);border-radius:4px;position:relative;padding:44px 36px 40px;box-shadow:0 0 0 3px var(--parchment-deeper),0 0 0 6px var(--rope),0 0 0 8px var(--parchment-deeper),0 20px 60px rgba(0,0,0,0.7),inset 0 0 80px rgba(180,130,40,0.2); }
+.scroll::before { content:'';position:absolute;inset:8px;border:1.5px dashed rgba(139,105,20,0.35);border-radius:2px;pointer-events:none; }
+.wax-seal { position:absolute;width:36px;height:36px;background:radial-gradient(circle at 40% 35%,#C42020,#6B0A0A);border-radius:50%;box-shadow:0 3px 8px rgba(0,0,0,0.5),inset 0 1px 2px rgba(255,150,150,0.3);display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1; }
+.wax-seal.tl{top:-10px;left:-10px;} .wax-seal.tr{top:-10px;right:-10px;} .wax-seal.bl{bottom:-10px;left:-10px;} .wax-seal.br{bottom:-10px;right:-10px;}
+.scroll-header { font-family:'Pirata One',cursive;font-size:clamp(30px,7vw,48px);color:var(--red-seal);text-align:center;text-shadow:2px 2px 0 var(--parchment-deeper),3px 3px 8px rgba(0,0,0,0.2);line-height:1.1;margin-bottom:6px; }
+.scroll-sub { font-family:'Cinzel',serif;font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--rope);text-align:center;margin-bottom:24px; }
+.divider { text-align:center;color:var(--gold);font-size:18px;margin:16px 0;letter-spacing:8px;opacity:0.7; }
+.intro-map-icon { font-size:80px;text-align:center;display:block;margin-bottom:12px;animation:floatIcon 3s ease-in-out infinite;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.4)); }
+@keyframes floatIcon{0%,100%{transform:translateY(0) rotate(-3deg);}50%{transform:translateY(-10px) rotate(3deg);}}
+.intro-body { font-family:'Cinzel',serif;font-size:14px;color:var(--ink-light);line-height:1.9;text-align:center;margin-bottom:28px; }
+.btn { display:block;width:100%;max-width:280px;margin:0 auto;padding:14px 24px;border-radius:3px;border:none;cursor:pointer;font-family:'Pirata One',cursive;font-size:20px;letter-spacing:1px;background:linear-gradient(135deg,#8B1A1A,#C42020,#8B1A1A);color:var(--gold-light);text-shadow:1px 1px 2px rgba(0,0,0,0.5);box-shadow:0 4px 16px rgba(139,26,26,0.5),0 2px 0 #5A0A0A,inset 0 1px 0 rgba(255,200,100,0.2);transition:transform 0.15s,box-shadow 0.15s;position:relative;overflow:hidden; }
+.btn::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(255,255,255,0.08),transparent);}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(139,26,26,0.6),0 2px 0 #5A0A0A,inset 0 1px 0 rgba(255,200,100,0.2);}
+.btn:active{transform:translateY(1px) scale(0.98);}
+.btn.gold-btn { background:linear-gradient(135deg,#8B6914,#C8960C,#F0C040,#C8960C,#8B6914);color:var(--ink);text-shadow:none;box-shadow:0 4px 16px rgba(200,150,12,0.5),0 2px 0 #5A4008,inset 0 1px 0 rgba(255,255,200,0.3); }
+.btn.gold-btn:hover{box-shadow:0 8px 24px rgba(200,150,12,0.6),0 2px 0 #5A4008,inset 0 1px 0 rgba(255,255,200,0.3);}
+.progress-wrap{margin-bottom:22px;}
+.progress-label { font-family:'Cinzel',serif;font-size:11px;letter-spacing:2px;color:var(--rope);text-align:right;margin-bottom:6px;text-transform:uppercase; }
+.progress-track { height:12px;background:var(--parchment-dark);border-radius:2px;overflow:hidden;border:1.5px solid var(--parchment-deeper);box-shadow:inset 0 2px 4px rgba(0,0,0,0.15); }
+.progress-fill { height:100%;background:repeating-linear-gradient(45deg,#8B1A1A,#8B1A1A 6px,#C42020 6px,#C42020 12px);transition:width 0.7s cubic-bezier(0.4,0,0.2,1);box-shadow:inset 0 1px 0 rgba(255,150,150,0.3); }
+.x-markers{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.x-mark{font-size:13px;transition:all 0.3s;filter:grayscale(1) opacity(0.3);}
+.x-mark.done{filter:none;animation:xPop 0.4s cubic-bezier(0.34,1.8,0.64,1) both;}
+@keyframes xPop{from{transform:scale(0) rotate(-30deg);}to{transform:none;}}
+.clue-badge { display:inline-block;font-family:'Cinzel',serif;font-size:10px;letter-spacing:3px;color:var(--rope);text-transform:uppercase;background:var(--parchment-dark);padding:4px 12px;border-radius:2px;border:1px solid var(--parchment-deeper);margin-bottom:14px; }
+.portrait-wrap { position:relative;margin:0 auto 22px;display:flex;justify-content:center; }
+.portrait-frame { border-radius:2px;overflow:hidden;position:relative;border:3px solid var(--parchment-deeper);box-shadow:0 0 0 2px var(--rope),0 0 0 6px var(--parchment-deeper),0 8px 24px rgba(0,0,0,0.4);display:inline-block; }
+.portrait-frame img{display:block;width:auto;height:auto;max-width:min(80vw,480px);max-height:60vh;}
+.portrait-fallback{width:200px;height:200px;display:flex;align-items:center;justify-content:center;font-size:64px;background:var(--parchment-dark);}
+.corner-orn{position:absolute;font-size:18px;color:var(--gold);line-height:1;pointer-events:none;z-index:2;}
+.corner-orn.tl{top:-14px;left:-14px;} .corner-orn.tr{top:-14px;right:-14px;transform:scaleX(-1);} .corner-orn.bl{bottom:-14px;left:-14px;transform:scaleY(-1);} .corner-orn.br{bottom:-14px;right:-14px;transform:scale(-1,-1);}
+.ribbon { position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);background:var(--red-seal);color:var(--gold-light);font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:3px 16px;white-space:nowrap;clip-path:polygon(8px 0%,calc(100% - 8px) 0%,100% 50%,calc(100% - 8px) 100%,8px 100%,0% 50%);box-shadow:0 2px 6px rgba(0,0,0,0.3); }
+.question-text { font-family:'Cinzel',serif;font-size:15px;color:var(--ink);text-align:center;margin:28px 0 16px;line-height:1.6; }
+.input-row{position:relative;margin-bottom:12px;}
+.guess-input { width:100%;padding:13px 52px 13px 18px;background:rgba(255,248,220,0.6);border:2px solid var(--parchment-deeper);border-radius:2px;font-family:'Cinzel',serif;font-size:15px;color:var(--ink);outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.1);transition:border-color 0.2s,box-shadow 0.2s; }
+.guess-input::placeholder{color:var(--parchment-deeper);}
+.guess-input:focus{border-color:var(--gold);box-shadow:inset 0 2px 6px rgba(0,0,0,0.1),0 0 0 3px rgba(200,150,12,0.25);}
+.guess-input.shake{animation:shake 0.4s ease;}
+@keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-8px);}40%{transform:translateX(8px);}60%{transform:translateX(-5px);}80%{transform:translateX(5px);}}
+.send-btn { position:absolute;right:8px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:2px;border:none;cursor:pointer;background:linear-gradient(135deg,#8B1A1A,#C42020);color:var(--gold-light);font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(139,26,26,0.4);transition:transform 0.15s; }
+.send-btn:hover{transform:translateY(-50%) scale(1.1);}
+.hint-box{min-height:32px;text-align:center;font-family:'Cinzel',serif;font-size:13px;padding:6px 14px;border-radius:2px;transition:all 0.2s;}
+.hint-box.error{background:rgba(139,26,26,0.12);color:var(--red-seal);border:1px solid rgba(139,26,26,0.25);}
+.hint-box.success{background:rgba(74,103,65,0.15);color:var(--map-green);border:1px solid rgba(74,103,65,0.3);}
+.success-overlay{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(15,8,2,0.82);backdrop-filter:blur(3px);}
+.success-overlay.show{display:flex;}
+.success-scroll { background:var(--parchment);border-radius:3px;padding:36px 32px;text-align:center;max-width:360px;width:90%;box-shadow:0 0 0 3px var(--parchment-deeper),0 0 0 6px var(--rope),0 24px 80px rgba(0,0,0,0.8);animation:unfurl 0.5s cubic-bezier(0.34,1.5,0.64,1) both;position:relative; }
+.success-scroll::before{content:'';position:absolute;inset:8px;border:1.5px dashed rgba(139,105,20,0.3);border-radius:2px;pointer-events:none;}
+.success-x{font-size:60px;display:block;margin-bottom:8px;animation:xPop 0.5s cubic-bezier(0.34,1.8,0.64,1) both;}
+.success-scroll h2{font-family:'Pirata One',cursive;font-size:26px;color:var(--red-seal);margin-bottom:6px;}
+.success-scroll p{font-family:'Cinzel',serif;font-size:13px;color:var(--ink-light);margin-bottom:20px;line-height:1.6;}
+.final-big{font-size:72px;display:block;text-align:center;margin-bottom:10px;animation:floatIcon 2s ease-in-out infinite;}
+#final-screen .scroll-header{font-size:clamp(28px,8vw,52px);margin-bottom:4px;}
+.final-message{font-family:'Cinzel',serif;font-size:clamp(13px,3vw,15px);color:var(--ink-light);text-align:center;line-height:1.9;margin:14px 0 24px;}
+.treasure-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:26px;}
+.treasure-item{background:var(--parchment-dark);border-radius:2px;padding:10px;display:flex;align-items:center;gap:8px;border:1px solid var(--parchment-deeper);font-family:'Cinzel',serif;font-size:12px;color:var(--ink);box-shadow:inset 0 1px 0 rgba(255,255,255,0.3);animation:slideUp 0.5s ease both;}
+.treasure-item:nth-child(1){animation-delay:0.1s;} .treasure-item:nth-child(2){animation-delay:0.2s;} .treasure-item:nth-child(3){animation-delay:0.3s;} .treasure-item:nth-child(4){animation-delay:0.4s;} .treasure-item:nth-child(5){animation-delay:0.5s;} .treasure-item:nth-child(6){animation-delay:0.6s;}
+@keyframes slideUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+.treasure-icon{font-size:20px;flex-shrink:0;}
+#confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:300;}
+.firework-el{position:fixed;pointer-events:none;z-index:299;}
+.spark{position:absolute;width:5px;height:5px;border-radius:50%;animation:sparkFly var(--dur) ease-out both;}
+@keyframes sparkFly{0%{transform:translate(0,0);opacity:1;}100%{transform:translate(var(--tx),var(--ty));opacity:0;}}
+.balloon-el{position:fixed;pointer-events:none;z-index:298;animation:riseUp var(--dur,6s) ease-in both;}
+@keyframes riseUp{from{transform:translateY(110vh) rotate(var(--r1,-5deg));opacity:0.9;}to{transform:translateY(-15vh) rotate(var(--r2,5deg));opacity:0;}}
+@media(max-width:440px){.scroll{padding:32px 20px 28px;}.treasure-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="map-bg"></div>
+<div class="dust" id="dust"></div>
+<canvas id="confetti-canvas"></canvas>
+
+<svg class="compass" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="50" cy="50" r="48" stroke="#C8960C" stroke-width="1.5"/>
+  <circle cx="50" cy="50" r="38" stroke="#C8960C" stroke-width="0.5" stroke-dasharray="3 4"/>
+  <polygon points="50,4 54,46 50,52 46,46" fill="#C8960C"/>
+  <polygon points="50,96 54,54 50,48 46,54" fill="#8B6914"/>
+  <polygon points="4,50 46,54 52,50 46,46" fill="#8B6914"/>
+  <polygon points="96,50 54,54 48,50 54,46" fill="#C8960C"/>
+  <text x="50" y="18" text-anchor="middle" fill="#C8960C" font-size="8" font-family="serif" font-weight="bold">N</text>
+  <text x="50" y="90" text-anchor="middle" fill="#C8960C" font-size="8" font-family="serif">S</text>
+  <text x="88" y="54" text-anchor="middle" fill="#C8960C" font-size="8" font-family="serif">E</text>
+  <text x="12" y="54" text-anchor="middle" fill="#C8960C" font-size="8" font-family="serif">W</text>
+  <circle cx="50" cy="50" r="4" fill="#C8960C"/>
+</svg>
+
+<div class="rope-top"></div>
+<div class="rope-bottom"></div>
+
+<div class="page">
+
+  <!-- INTRO -->
+  <div class="screen active" id="intro-screen">
+    <div class="scroll">
+      <div class="wax-seal tl">⚓</div><div class="wax-seal tr">🔱</div>
+      <div class="wax-seal bl">🗡️</div><div class="wax-seal br">⚜️</div>
+      <span class="intro-map-icon">🗺️</span>
+      <h1 class="scroll-header">Birthday Treasure Hunt!</h1>
+      <p class="scroll-sub">✦ A Quest of Memories ✦</p>
+      <div class="divider">⸻ ✦ ⸻</div>
+      <p class="intro-body">
+        A map has been drawn,<br>
+        nineteen souls hidden in its folds.<br>
+        Identify each face to claim<br>
+        the treasure that lies beyond.<br><br>
+        <em>Dare ye accept the quest?</em>
+      </p>
+      <div class="divider">⸻ ✦ ⸻</div>
+      <button class="btn" onclick="startHunt()" style="margin-top:20px">⚔️ Begin the Quest ⚔️</button>
+    </div>
+  </div>
+
+  <!-- CLUE -->
+  <div class="screen" id="clue-screen">
+    <div class="scroll">
+      <div class="wax-seal tl">⚓</div><div class="wax-seal tr">🔱</div>
+      <div class="wax-seal bl">🗡️</div><div class="wax-seal br">⚜️</div>
+      <div class="progress-wrap">
+        <div class="progress-label" id="progress-label">Clue I of XIX</div>
+        <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+        <div class="x-markers" id="x-markers"></div>
+      </div>
+      <div style="text-align:center;margin-bottom:14px;">
+        <span class="clue-badge" id="clue-badge">✦ CLUE THE FIRST ✦</span>
+      </div>
+      <div class="portrait-wrap">
+        <div class="portrait-frame">
+          <img id="clue-img" src="" alt="Mystery person"
+               onerror="this.style.display='none';document.getElementById('img-fallback').style.display='flex'">
+          <div class="portrait-fallback" id="img-fallback" style="display:none">🙈</div>
+        </div>
+        <span class="corner-orn tl">❧</span><span class="corner-orn tr">❧</span>
+        <span class="corner-orn bl">❧</span><span class="corner-orn br">❧</span>
+        <div class="ribbon" id="clue-ribbon">Identify the Soul</div>
+      </div>
+      <p class="question-text">Who is this wanderer upon the map?</p>
+      <div class="input-row">
+        <input class="guess-input" id="guess-input" type="text"
+               placeholder="Speak their name…" autocomplete="off"
+               autocorrect="off" autocapitalize="off" spellcheck="false">
+        <button class="send-btn" onclick="checkGuess()" title="Submit">➜</button>
+      </div>
+      <div class="hint-box" id="hint-box"></div>
+    </div>
+  </div>
+
+  <!-- FINAL -->
+  <div class="screen" id="final-screen">
+    <div class="scroll">
+      <div class="wax-seal tl">⚓</div><div class="wax-seal tr">🔱</div>
+      <div class="wax-seal bl">🗡️</div><div class="wax-seal br">⚜️</div>
+      <span class="final-big">🏆</span>
+      <h1 class="scroll-header">Treasure Found!</h1>
+      <p class="scroll-sub">✦ Happy Birthday, Rhuju! ✦</p>
+      <div class="divider">⸻ ✦ ⸻</div>
+      <p class="final-message">
+        You've traversed the map and found all<br>
+        nineteen souls who love you dearly.<br>
+        May this birthday be the grandest<br>
+        adventure of them all! 🌟
+      </p>
+      <div class="treasure-grid">
+        <div class="treasure-item"><span class="treasure-icon">🌈</span>Joy in abundance</div>
+        <div class="treasure-item"><span class="treasure-icon">⭐</span>Stars on your path</div>
+        <div class="treasure-item"><span class="treasure-icon">💖</span>Love all around</div>
+        <div class="treasure-item"><span class="treasure-icon">🎉</span>Endless celebration</div>
+        <div class="treasure-item"><span class="treasure-icon">🌸</span>Health & happiness</div>
+        <div class="treasure-item"><span class="treasure-icon">🚢</span>Grand adventures</div>
+      </div>
+      <div class="divider">⸻ ✦ ⸻</div>
+      <button class="btn gold-btn" onclick="restartHunt()" style="margin-top:18px">🗺️ Sail Again 🗺️</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- SUCCESS OVERLAY -->
+<div class="success-overlay" id="success-overlay">
+  <div class="success-scroll">
+    <span class="success-x" id="success-emoji">✅</span>
+    <h2 id="success-title">Marked on the Map!</h2>
+    <p id="success-msg">A new X marks the spot! Onward, brave explorer!</p>
+    <button class="btn" id="next-btn" onclick="nextClue()">Onward! ➜</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════
+   CLUES — answer is checked case-insensitively
+   against whatever the user types
+═══════════════════════════════════════ */
+const CLUES = [
+  { file:"mihika.jpg",  answer:"mihika"  },
+  { file:"heer.jpg",    answer:"heer"    },
+  { file:"shubh.jpg",   answer:"shubh"   },
+  { file:"sujal.jpg",   answer:"sujal"   },
+  { file:"hardik.jpg",  answer:"hardik"  },
+  { file:"purva.jpg",   answer:"purva"   },
+  { file:"jiya.jpg",    answer:"jiya"    },
+  { file:"nishit.jpg",  answer:"nishit"  },
+  { file:"nishi.jpg",   answer:"nishi"   },
+  { file:"vidhi.jpg",   answer:"vidhi"   },
+  { file:"viraj.jpg",   answer:"viraj"   },
+  { file:"anmol.jpg",   answer:"anmol"   },
+  { file:"siya.jpg",    answer:"siya"    },
+  { file:"aadya.jpg",   answer:"aadya"   },
+  { file:"rutvi.jpg",   answer:"rutvi"   },
+  { file:"lavanya.jpg", answer:"lavanya" },
+  { file:"mehta.jpg",   answer:"mehta"   },
+  { file:"kandarp.jpg", answer:"kandarp" },
+];
+
+const ROMAN = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX"];
+
+/* One entry per clue — arrays are exactly CLUES.length long */
+const SUCCESS_EMOJIS = ["✅","⚔️","🗺️","🏴‍☠️","⭐","🔑","💎","🪙","🧭","🎯","🔭","⚓","🌊","🏹","🦜","🌴","🐚","🏆"];
+const SUCCESS_TITLES = [
+  "Marked on the Map!",
+  "Huzzah! Correct!",
+  "X Marks the Spot!",
+  "The Seal is Broken!",
+  "Onward, Adventurer!",
+  "The Path Clears!",
+  "Another Soul Found!",
+  "The Map Reveals More!",
+  "Brilliant Navigation!",
+  "True Explorer!",
+  "The Treasure Draws Near!",
+  "Compass Points True!",
+  "The Tide Turns!",
+  "Arrow Flies True!",
+  "The Parrot Agrees!",
+  "Land Ho!",
+  "The Chest Gleams!",
+  "One Soul Remains…",
+];
+const SUCCESS_MSGS = [
+  "A new X marks the spot! Sail on!",
+  "You know your crew well!",
+  "The map unfolds further…",
+  "Your memory is legendary!",
+  "The winds are in your favour!",
+  "Another face recognised!",
+  "The ancient scroll reveals more!",
+  "Your ship sails closer!",
+  "The stars guide you right!",
+  "Land ho! Almost at the treasure!",
+  "The chest gleams in the distance!",
+  "Steady course, brave sailor!",
+  "The sea parts for the worthy!",
+  "Sharper than a cutlass!",
+  "Even the parrot knows this one!",
+  "The island is in sight!",
+  "Gold glitters just ahead!",
+  "One final soul stands between you and glory…",
+];
+
+let current = 0;
+
+/* ── dust motes ── */
+(function(){
+  for(let i=0;i<18;i++){
+    const m=document.createElement('div'); m.className='mote';
+    const s=2+Math.random()*3;
+    m.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation:floatMote ${8+Math.random()*14}s ${Math.random()*10}s linear infinite;`;
+    document.getElementById('dust').appendChild(m);
+  }
+  const st=document.createElement('style');
+  st.textContent=`@keyframes floatMote{0%{transform:translateY(0);opacity:0;}10%{opacity:0.6;}90%{opacity:0.3;}100%{transform:translateY(-120px);opacity:0;}}`;
+  document.head.appendChild(st);
+})();
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function buildXMarkers(){
+  const wrap=document.getElementById('x-markers');
+  wrap.innerHTML='';
+  CLUES.forEach((_,i)=>{
+    const span=document.createElement('span');
+    span.className='x-mark'+(i<current?' done':'');
+    span.id='xm-'+i; span.textContent='✦';
+    wrap.appendChild(span);
+  });
+}
+
+function startHunt(){
+  current=0;
+  showScreen('clue-screen');
+  buildXMarkers();
+  loadClue();
+}
+
+function loadClue(){
+  const c=CLUES[current];
+  const total=CLUES.length;
+  document.getElementById('progress-label').textContent=`Clue ${ROMAN[current]} of ${ROMAN[total-1]}`;
+  document.getElementById('prog-fill').style.width=((current/total)*100)+'%';
+  document.getElementById('clue-badge').textContent=`✦ CLUE THE ${ROMAN[current]} ✦`;
+  document.getElementById('clue-ribbon').textContent='Identify the Soul';
+
+  const img=document.getElementById('clue-img');
+  const fb=document.getElementById('img-fallback');
+  img.style.display='block'; fb.style.display='none';
+  img.src=c.file;
+
+  const inp=document.getElementById('guess-input');
+  inp.value=''; inp.classList.remove('shake');
+  document.getElementById('hint-box').textContent='';
+  document.getElementById('hint-box').className='hint-box';
+  setTimeout(()=>inp.focus(),150);
+}
+
+function checkGuess(){
+  const inp=document.getElementById('guess-input');
+  const guess=inp.value.trim().toLowerCase();
+  const answer=CLUES[current].answer.toLowerCase();
+  if(!guess) return;
+
+  if(guess===answer){
+    showSuccess();
+  } else {
+    const msgs=[
+      "Nay, that be not the right soul! Try again 🗡️",
+      "The map shakes its head… look closer! 🔭",
+      "Hmm, the compass spins! Try once more ⚓",
+      "That name is not written here… 📜",
+      "The sea mist hides the truth — try again! 🌊"
+    ];
+    const hb=document.getElementById('hint-box');
+    hb.textContent=msgs[Math.floor(Math.random()*msgs.length)];
+    hb.className='hint-box error';
+    inp.classList.remove('shake');
+    void inp.offsetWidth;
+    inp.classList.add('shake');
+  }
+}
+
+function showSuccess(){
+  /* clamp index safely so it never goes out of bounds */
+  const i=Math.min(current, SUCCESS_EMOJIS.length-1);
+  document.getElementById('success-emoji').textContent=SUCCESS_EMOJIS[i];
+  document.getElementById('success-title').textContent=SUCCESS_TITLES[i];
+  document.getElementById('success-msg').textContent=SUCCESS_MSGS[i];
+  const isLast=current===CLUES.length-1;
+  document.getElementById('next-btn').textContent=isLast?'Claim the Treasure! 🏆':'Onward! ➜';
+  document.getElementById('success-overlay').classList.add('show');
+  spawnMini();
+}
+
+function nextClue(){
+  document.getElementById('success-overlay').classList.remove('show');
+  const xm=document.getElementById('xm-'+current);
+  if(xm){ xm.classList.add('done'); xm.textContent='✦'; }
+  current++;
+  if(current>=CLUES.length) showFinal();
+  else loadClue();
+}
+
+function showFinal(){
+  showScreen('final-screen');
+  setTimeout(()=>{
+    launchConfetti();
+    setTimeout(launchBalloons,500);
+    for(let i=0;i<8;i++) setTimeout(spawnFirework,i*400+200);
+  },300);
+}
+
+function restartHunt(){
+  stopConfetti();
+  document.querySelectorAll('.balloon-el,.firework-el').forEach(e=>e.remove());
+  startHunt();
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.getElementById('clue-screen').classList.contains('active')) checkGuess();
+});
+
+/* ══ CONFETTI ══ */
+let confettiAF;
+const canvas=document.getElementById('confetti-canvas');
+const ctx=canvas.getContext('2d');
+let particles=[];
+function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+resizeCanvas(); window.addEventListener('resize',resizeCanvas);
+const CCOLS=['#C8960C','#F0C040','#8B1A1A','#C42020','#4A6741','#2A4A6B','#D4AF37','#8B6914','#FF9999','#99DDFF'];
+
+function Particle(cx,cy){
+  this.x=cx??Math.random()*canvas.width;
+  this.y=cy??Math.random()*canvas.height-canvas.height;
+  this.w=6+Math.random()*9; this.h=4+Math.random()*5;
+  this.color=CCOLS[Math.floor(Math.random()*CCOLS.length)];
+  this.speed=2+Math.random()*4; this.angle=Math.random()*360;
+  this.spin=(Math.random()-0.5)*7; this.drift=(Math.random()-0.5)*1.8;
+}
+Particle.prototype.update=function(){this.y+=this.speed;this.x+=this.drift;this.angle+=this.spin;};
+Particle.prototype.draw=function(){
+  ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.angle*Math.PI/180);
+  ctx.fillStyle=this.color;ctx.fillRect(-this.w/2,-this.h/2,this.w,this.h);ctx.restore();
+};
+function launchConfetti(){ particles=Array.from({length:200},()=>new Particle()); animConf(); }
+function animConf(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach(p=>{p.update();p.draw();});
+  particles=particles.filter(p=>p.y<canvas.height+20);
+  if(particles.length>0) confettiAF=requestAnimationFrame(animConf);
+  else ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+function stopConfetti(){cancelAnimationFrame(confettiAF);ctx.clearRect(0,0,canvas.width,canvas.height);particles=[];}
+function spawnMini(){
+  const mini=Array.from({length:50},()=>{
+    const p=new Particle(window.innerWidth/2+(Math.random()-.5)*120,window.innerHeight/2+(Math.random()-.5)*80);
+    p.speed=3+Math.random()*5; return p;
+  });
+  function anim(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    mini.forEach(p=>{p.update();p.draw();});
+    const alive=mini.filter(p=>p.y<canvas.height+20);
+    mini.length=0; alive.forEach(p=>mini.push(p));
+    if(mini.length>0) requestAnimationFrame(anim);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  anim();
+}
+
+/* ══ FIREWORKS ══ */
+function spawnFirework(){
+  const fw=document.createElement('div'); fw.className='firework-el';
+  fw.style.cssText=`left:${10+Math.random()*80}vw;top:${8+Math.random()*55}vh;`;
+  const n=22+Math.floor(Math.random()*16);
+  for(let i=0;i<n;i++){
+    const s=document.createElement('div'); s.className='spark';
+    const rad=(i/n)*Math.PI*2, dist=55+Math.random()*90, dur=0.6+Math.random()*0.7;
+    s.style.cssText=`background:${CCOLS[i%CCOLS.length]};--tx:${Math.cos(rad)*dist}px;--ty:${Math.sin(rad)*dist}px;--dur:${dur}s;animation-delay:${Math.random()*0.15}s;`;
+    fw.appendChild(s);
+  }
+  document.body.appendChild(fw);
+  setTimeout(()=>fw.remove(),2200);
+}
+
+/* ══ BALLOONS ══ */
+const BALS=['🎈','⚓','🏴‍☠️','⭐','💎','🗺️','🎊','⚜️'];
+function launchBalloons(){
+  for(let i=0;i<12;i++) setTimeout(()=>{
+    const b=document.createElement('div'); b.className='balloon-el';
+    const dur=5+Math.random()*4;
+    b.style.cssText=`left:${5+Math.random()*90}vw;--dur:${dur}s;--r1:${(Math.random()-.5)*18}deg;--r2:${(Math.random()-.5)*18}deg;animation-delay:${Math.random()*2}s;font-size:${36+Math.random()*20}px;`;
+    b.textContent=BALS[Math.floor(Math.random()*BALS.length)];
+    document.body.appendChild(b);
+    setTimeout(()=>b.remove(),(dur+3)*1000);
+  },i*280);
+}
+</script>
+</body>
+</html>
